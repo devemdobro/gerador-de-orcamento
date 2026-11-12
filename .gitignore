@@ -5,3 +5,6 @@
 next-env.d.ts
 *.tsbuildinfo
 .gstack/
+
+# auditoria de segurança (local)
+SECURITY.md

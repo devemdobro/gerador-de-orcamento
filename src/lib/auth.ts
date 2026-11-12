@@ -16,6 +16,10 @@ export async function criarSessao() {
   ;(await cookies()).set(NOME, `${exp}.${assinar(String(exp))}`, { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: 7 * 86400 })
 }
 
+export async function encerrarSessao() {
+  ;(await cookies()).delete(NOME)
+}
+
 export async function exigirAdmin() {
   const v = (await cookies()).get(NOME)?.value ?? ''
   const [exp, sig] = v.split('.')

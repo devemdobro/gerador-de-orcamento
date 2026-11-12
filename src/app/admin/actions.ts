@@ -1,16 +1,39 @@
 'use server'
 
 import { randomBytes } from 'node:crypto'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { criarSessao, exigirAdmin, senhaCorreta } from '@/lib/auth'
+import { criarSessao, encerrarSessao, exigirAdmin, senhaCorreta } from '@/lib/auth'
 import { entradaCentavos } from '@/lib/calculo'
 import { montarSnapshot, type Dados } from '@/lib/proposta'
 import { supabase } from '@/lib/supabase'
 
+// shortcut: contador em memória por instância serverless (não é global entre instâncias), upgrade: tabela no Supabase se houver ataque real
+const falhas = new Map<string, { n: number; ate: number }>()
+const MAX_FALHAS = 5
+const JANELA_MS = 15 * 60e3
+
 export async function entrar(_: unknown, form: FormData) {
-  if (!senhaCorreta(String(form.get('senha') ?? ''))) return 'Senha incorreta.'
+  const ip = (await headers()).get('x-forwarded-for')?.split(',')[0].trim() || 'desconhecido'
+  const agora = Date.now()
+  const f = falhas.get(ip)
+  const atual = f && f.ate > agora ? f : { n: 0, ate: agora + JANELA_MS }
+  if (atual.n >= MAX_FALHAS) return 'Muitas tentativas. Aguarde 15 minutos.'
+
+  if (!senhaCorreta(String(form.get('senha') ?? ''))) {
+    if (falhas.size > 1000) falhas.clear()
+    falhas.set(ip, { ...atual, n: atual.n + 1 })
+    await new Promise((r) => setTimeout(r, 1000)) // atrasa cada erro
+    return 'Senha incorreta.'
+  }
+  falhas.delete(ip)
   await criarSessao()
   redirect('/admin')
+}
+
+export async function sair() {
+  await encerrarSessao()
+  redirect('/admin/login')
 }
 
 const campos = (d: Dados) => ({
