@@ -23,6 +23,19 @@ export default async function Proposta({ params, searchParams }: { params: Promi
   const itens: ItemSnapshot[] = p.servicos.itens
   const de = (c: ItemSnapshot['categoria']) => itens.filter((i) => i.categoria === c)
 
+  // tela de obrigado: volta do checkout (?pago=1) ou entrada já confirmada pelo webhook
+  if (pago || p.status === 'paga') return (
+    <>
+      <p className="marca">Dobro Solutions</p>
+      <p className="kicker">Pagamento da entrada</p>
+      <h1>Obrigado, <span style={{ color: 'var(--acao-destaque)' }}>{p.cliente}</span>!</h1>
+      <div className="alerta" data-tipo="sucesso" role="status">
+        <p>{p.status === 'paga' ? 'Recebemos' : 'Estamos confirmando'} o pagamento da entrada de {brl(Number(p.entrada_valor))}.</p>
+        <p>Em breve entraremos em contato para dar início ao projeto.</p>
+      </div>
+    </>
+  )
+
   return (
     <>
       <p className="marca">Dobro Solutions</p>
@@ -62,18 +75,12 @@ export default async function Proposta({ params, searchParams }: { params: Promi
 
       <section className="etapa">
         <h2>Pagamento</h2>
-        {p.status === 'paga' ? (
-          <p className="alerta" data-tipo="sucesso" role="status">Entrada paga. Obrigado!</p>
-        ) : pago ? (
-          <p className="alerta" role="status">Pagamento recebido, aguardando confirmação…</p>
-        ) : (
-          <form method="post" action="/api/checkout">
-            {cancelado && <p className="alerta" data-tipo="aviso" role="alert">Pagamento cancelado. Você pode tentar novamente.</p>}
-            <input type="hidden" name="token" value={p.token} />
-            <button style={{ width: '100%' }}>Pagar entrada de {brl(Number(p.entrada_valor))}</button>
-            <p className="muted">Entrada de 30% do valor único do projeto.</p>
-          </form>
-        )}
+        <form method="post" action="/api/checkout">
+          {cancelado && <p className="alerta" data-tipo="aviso" role="alert">Pagamento cancelado. Você pode tentar novamente.</p>}
+          <input type="hidden" name="token" value={p.token} />
+          <button style={{ width: '100%' }}>Pagar entrada de {brl(Number(p.entrada_valor))}</button>
+          <p className="muted">Entrada de 30% do valor único do projeto.</p>
+        </form>
       </section>
     </>
   )

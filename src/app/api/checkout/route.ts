@@ -10,7 +10,8 @@ export async function POST(req: Request) {
   const { data: p } = await db.from('propostas').select('id, cliente, total_unico').eq('token', token).eq('status', 'aprovada').maybeSingle()
   if (!p) return new NextResponse('Proposta não encontrada', { status: 404 })
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin
+  // || e não ??: variável vazia na Vercel também cai no domínio da requisição
+  const site = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
